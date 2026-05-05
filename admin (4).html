@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin — Portal Preuniversitario</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f6fa;--w:#fff;--bd:#e2e8f0;--navy:#1e3a5f;--blue:#2563eb;
+  --green:#059669;--red:#dc2626;--amber:#d97706;--mut:#64748b;
+  --pf:'Plus Jakarta Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);font-family:var(--pf);min-height:100vh}
+
+/* LOGIN */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--navy)}
+.login-card{background:var(--w);border-radius:16px;padding:2.5rem 2rem;width:360px;text-align:center}
+.login-card h1{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--navy);margin-bottom:.3rem}
+.login-card p{font-size:.8rem;color:var(--mut);margin-bottom:1.8rem}
+.login-card input{width:100%;padding:.75rem 1rem;border:1.5px solid var(--bd);border-radius:10px;font-family:var(--pf);font-size:.85rem;margin-bottom:.8rem;outline:none}
+.login-card input:focus{border-color:var(--blue)}
+.btn-primary{width:100%;padding:.75rem;background:var(--navy);color:#fff;border:none;border-radius:10px;font-family:var(--pf);font-size:.85rem;font-weight:600;cursor:pointer;transition:opacity .2s}
+.btn-primary:hover{opacity:.9}
+.login-err{color:var(--red);font-size:.78rem;margin-top:.5rem;display:none}
+
+/* MAIN */
+#main-screen{display:none}
+.topbar{background:var(--navy);color:#fff;padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between}
+.topbar h1{font-family:'Playfair Display',serif;font-size:1.2rem}
+.topbar h1 em{color:#60a5fa;font-style:normal}
+.topbar p{font-size:.72rem;color:rgba(255,255,255,.5);margin-top:2px}
+.btn-logout{font-size:.75rem;padding:5px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);background:transparent;cursor:pointer}
+.btn-logout:hover{background:rgba(255,255,255,.1)}
+.content{padding:2rem;max-width:960px;margin:0 auto}
+
+/* CONFIG */
+.config-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:1.2rem 1.5rem;margin-bottom:1.5rem}
+.config-box h3{font-size:.8rem;font-weight:700;color:var(--navy);margin-bottom:.8rem;text-transform:uppercase;letter-spacing:.07em}
+.config-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.config-row label{font-size:.78rem;font-weight:600;color:var(--mut)}
+.config-row input, .config-row select{padding:.5rem .8rem;border:1.5px solid var(--bd);border-radius:8px;font-family:var(--pf);font-size:.82rem;outline:none;background:white}
+.config-row input:focus, .config-row select:focus{border-color:var(--blue)}
+.url-ok{color:var(--green);font-size:.75rem;font-weight:600}
+.url-err{color:var(--red);font-size:.75rem;font-weight:600}
+
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--bd);margin-bottom:1.5rem}
+.tab{padding:.7rem 1.3rem;font-size:.8rem;font-weight:600;color:var(--mut);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab.on{color:var(--navy);border-bottom-color:var(--navy)}
+.tab:hover:not(.on){color:var(--navy)}
+.tab-pane{display:none}
+.tab-pane.on{display:block}
+
+/* UPLOAD CARD */
+.upload-card{background:var(--w);border:1px solid var(--bd);border-radius:12px;padding:1.5rem;margin-bottom:1rem}
+.upload-card h3{font-size:.85rem;font-weight:700;color:var(--navy);margin-bottom:.5rem}
+.upload-card p{font-size:.77rem;color:var(--mut);margin-bottom:1rem;line-height:1.5}
+.drop-zone{border:2px dashed var(--bd);border-radius:10px;padding:1.5rem;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:1rem}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--blue);background:#eff6ff}
+.drop-zone input{display:none}
+.drop-zone .icon{font-size:1.8rem;margin-bottom:.4rem}
+.drop-zone .title{font-size:.82rem;font-weight:600;color:var(--navy)}
+.drop-zone .sub{font-size:.72rem;color:var(--mut)}
+.file-item{display:flex;align-items:center;gap:8px;padding:.5rem .8rem;background:#f8fafc;border-radius:8px;margin-bottom:6px;font-size:.78rem}
+.file-icon{width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;background:#dbeafe;color:#1d4ed8;flex-shrink:0}
+.btn-subir{display:inline-block;padding:.7rem 1.4rem;background:var(--navy);color:#fff;border:none;border-radius:10px;font-family:var(--pf);font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-subir:hover{background:#2563eb}
+.btn-subir:disabled{opacity:.5;cursor:not-allowed}
+
+/* LOG */
+.log-box{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:1rem;font-family:monospace;font-size:.73rem;line-height:1.6;max-height:180px;overflow-y:auto;margin-top:1rem;display:none}
+.log-ok{color:#4ade80}.log-warn{color:#fbbf24}.log-err{color:#f87171}
+
+/* HISTORIAL */
+.history-row{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1rem;border-bottom:1px solid var(--bd);font-size:.8rem}
+.history-row:last-child{border-bottom:none}
+.badge{font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:10px;background:#dbeafe;color:#1d4ed8}
+.btn-del{font-size:.72rem;padding:4px 10px;border:1px solid #fee2e2;border-radius:8px;color:#dc2626;background:white;cursor:pointer}
+.btn-del:hover{background:#fee2e2}
+
+/* MAPEO COLUMNAS */
+.map-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
+.map-item label{display:block;font-size:.72rem;font-weight:600;color:var(--mut);margin-bottom:3px}
+.map-item select{width:100%;padding:.4rem .6rem;border:1.5px solid var(--bd);border-radius:7px;font-size:.78rem;font-family:var(--pf);outline:none}
+
+/* STATUS */
+.status-badge{display:inline-flex;align-items:center;gap:6px;padding:.4rem .8rem;border-radius:20px;font-size:.72rem;font-weight:600}
+.status-ok{background:#d1fae5;color:#065f46}
+.status-err{background:#fee2e2;color:#991b1b}
+.status-connecting{background:#fef3c7;color:#92400e}
+
+@media(max-width:600px){.map-grid{grid-template-columns:1fr}.config-row{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1>Portal <em>Admin</em></h1>
+    <p>Preuniversitario · Panel de carga de datos</p>
+    <input type="password" id="pwd-input" placeholder="Contraseña de administrador" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-primary" onclick="doLogin()">Ingresar</button>
+    <div class="login-err" id="login-err">Contraseña incorrecta</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main-screen">
+  <div class="topbar">
+    <div>
+      <h1>Panel <em>Admin</em></h1>
+      <p>Carga mensual de datos — Portal Académico</p>
+    </div>
+    <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+  </div>
+
+  <div class="content">
+
+    <!-- CONFIGURACIÓN -->
+    <div class="config-box">
+      <h3>⚙️ Configuración del servidor</h3>
+      <div class="config-row">
+        <label>URL de Railway:</label>
+        <input type="text" id="api-url" placeholder="https://tu-app.railway.app" style="width:300px" oninput="saveConfig()">
+        <label>Clave admin:</label>
+        <input type="password" id="api-key" placeholder="Clave admin" oninput="saveConfig()">
+        <button class="btn-primary" style="width:auto;padding:.5rem 1rem;font-size:.78rem" onclick="testConexion()">Probar conexión</button>
+        <span id="conn-status"></span>
+      </div>
+    </div>
+
+    <!-- PERIODO -->
+    <div class="config-box" style="background:#f0fdf4;border-color:#bbf7d0">
+      <h3>📅 Periodo de esta carga</h3>
+      <div class="config-row">
+        <label>Mes:</label>
+        <select id="sel-mes">
+          <option>Enero</option><option>Febrero</option><option>Marzo</option>
+          <option>Abril</option><option>Mayo</option><option>Junio</option>
+          <option>Julio</option><option>Agosto</option><option>Septiembre</option>
+          <option>Octubre</option><option>Noviembre</option><option>Diciembre</option>
+        </select>
+        <label>Año:</label>
+        <input type="number" id="sel-año" value="2026" style="width:80px">
+        <label>Descripción (opcional):</label>
+        <input type="text" id="sel-desc" placeholder="Ej: Ensayo 2 - Abril 2026" style="width:220px">
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <div class="tab on" onclick="showTab('ensayos',this)">📝 Ensayos</div>
+      <div class="tab" onclick="showTab('asistencia',this)">📋 Asistencia</div>
+      <div class="tab" onclick="showTab('alertas',this)">⚠️ Alertas</div>
+      <div class="tab" onclick="showTab('rrhh',this)">👥 RRHH</div>
+      <div class="tab" onclick="showTab('historial',this)">🗂 Historial</div>
+    </div>
+
+    <!-- TAB ENSAYOS -->
+    <div class="tab-pane on" id="tab-ensayos">
+      <div class="upload-card">
+        <h3>Subir resultados de ensayos</h3>
+        <p>Sube el Excel exportado con los resultados de ensayos PAES. Las columnas se mapearán automáticamente. Asegúrate que tenga columnas de: Nombre, Sede, Asignatura, Puntaje, Número de Ensayo.</p>
+
+        <div class="drop-zone" id="drop-ens" onclick="document.getElementById('file-ens').click()"
+             ondragover="onDrag(event,this)" ondragleave="offDrag(this)" ondrop="onDrop(event,this,'ens')">
+          <input type="file" id="file-ens" accept=".xlsx,.xls,.csv" onchange="onFile(event,'ens')">
+          <div class="icon">📊</div>
+          <div class="title">Arrastra el Excel aquí</div>
+          <div class="sub">.xlsx, .xls, .csv</div>
+        </div>
+
+        <div id="file-ens-info"></div>
+
+        <div id="map-ens" style="display:none">
+          <p style="font-size:.78rem;font-weight:600;color:var(--navy);margin-bottom:.7rem">Verificar columnas detectadas:</p>
+          <div class="map-grid">
+            <div class="map-item"><label>Nombre alumno</label><select id="col-nombre-ens"></select></div>
+            <div class="map-item"><label>Apellido (si es columna separada)</label><select id="col-apellido-ens"><option value="">— No aplica —</option></select></div>
+            <div class="map-item"><label>Sede</label><select id="col-sede-ens"></select></div>
+            <div class="map-item"><label>Asignatura</label><select id="col-asig-ens"></select></div>
+            <div class="map-item"><label>Puntaje</label><select id="col-pts-ens"></select></div>
+            <div class="map-item"><label>N° Ensayo</label><select id="col-num-ens"></select></div>
+            <div class="map-item"><label>Fecha</label><select id="col-fecha-ens"><option value="">— No aplica —</option></select></div>
+          </div>
+        </div>
+
+        <button class="btn-subir" id="btn-ens" disabled onclick="subirEnsayos()">Subir ensayos a Railway</button>
+        <div class="log-box" id="log-ens"></div>
+      </div>
+    </div>
+
+    <!-- TAB ASISTENCIA -->
+    <div class="tab-pane" id="tab-asistencia">
+      <div class="upload-card">
+        <h3>Subir datos de asistencia</h3>
+        <p>Excel con registros de asistencia. Necesita columnas de: Nombre, Sede, Asignatura, Fecha, y si el alumno estuvo Presente/Ausente.</p>
+
+        <div class="drop-zone" id="drop-asist" onclick="document.getElementById('file-asist').click()"
+             ondragover="onDrag(event,this)" ondragleave="offDrag(this)" ondrop="onDrop(event,this,'asist')">
+          <input type="file" id="file-asist" accept=".xlsx,.xls,.csv" onchange="onFile(event,'asist')">
+          <div class="icon">📋</div>
+          <div class="title">Arrastra el Excel aquí</div>
+          <div class="sub">.xlsx, .xls, .csv</div>
+        </div>
+
+        <div id="file-asist-info"></div>
+
+        <div id="map-asist" style="display:none">
+          <p style="font-size:.78rem;font-weight:600;color:var(--navy);margin-bottom:.7rem">Verificar columnas detectadas:</p>
+          <div class="map-grid">
+            <div class="map-item"><label>Nombre alumno</label><select id="col-nombre-asist"></select></div>
+            <div class="map-item"><label>Apellido (si es separado)</label><select id="col-apellido-asist"><option value="">— No aplica —</option></select></div>
+            <div class="map-item"><label>Sede</label><select id="col-sede-asist"></select></div>
+            <div class="map-item"><label>Asignatura / Clase</label><select id="col-asig-asist"></select></div>
+            <div class="map-item"><label>Fecha</label><select id="col-fecha-asist"><option value="">— No aplica —</option></select></div>
+            <div class="map-item"><label>Estado (Presente/Ausente)</label><select id="col-estado-asist"><option value="">— Todos presentes —</option></select></div>
+          </div>
+        </div>
+
+        <button class="btn-subir" id="btn-asist" disabled onclick="subirAsistencia()">Subir asistencia a Railway</button>
+        <div class="log-box" id="log-asist"></div>
+      </div>
+    </div>
+
+    <!-- TAB ALERTAS -->
+    <div class="tab-pane" id="tab-alertas">
+      <div class="upload-card">
+        <h3>Subir alertas de riesgo</h3>
+        <p>Excel con alumnos en riesgo (inasistencia en últimas 2 clases, bajo 75%, etc.).</p>
+
+        <div class="drop-zone" id="drop-alertas" onclick="document.getElementById('file-alertas').click()"
+             ondragover="onDrag(event,this)" ondragleave="offDrag(this)" ondrop="onDrop(event,this,'alertas')">
+          <input type="file" id="file-alertas" accept=".xlsx,.xls,.csv" onchange="onFile(event,'alertas')">
+          <div class="icon">⚠️</div>
+          <div class="title">Arrastra el Excel aquí</div>
+          <div class="sub">.xlsx, .xls, .csv</div>
+        </div>
+
+        <div id="file-alertas-info"></div>
+
+        <div id="map-alertas" style="display:none">
+          <div class="map-grid">
+            <div class="map-item"><label>Nombre alumno</label><select id="col-nombre-alertas"></select></div>
+            <div class="map-item"><label>Sede</label><select id="col-sede-alertas"></select></div>
+            <div class="map-item"><label>Asignatura</label><select id="col-asig-alertas"></select></div>
+            <div class="map-item"><label>% Asistencia</label><select id="col-pct-alertas"><option value="">— No aplica —</option></select></div>
+            <div class="map-item"><label>N° Ausencias</label><select id="col-aus-alertas"><option value="">— No aplica —</option></select></div>
+            <div class="map-item"><label>Tipo de alerta</label><select id="col-tipo-alertas"><option value="">— Usar "ult2" —</option></select></div>
+          </div>
+        </div>
+
+        <button class="btn-subir" id="btn-alertas" disabled onclick="subirAlertas()">Subir alertas a Railway</button>
+        <div class="log-box" id="log-alertas"></div>
+      </div>
+    </div>
+
+    <!-- TAB RRHH -->
+    <div class="tab-pane" id="tab-rrhh">
+      <div class="upload-card">
+        <h3>Subir datos de RRHH / Profesores</h3>
+        <p>Excel con la nómina docente: nombre, sigla, sede(s), asignatura(s) que imparte.</p>
+
+        <div class="drop-zone" id="drop-rrhh" onclick="document.getElementById('file-rrhh').click()"
+             ondragover="onDrag(event,this)" ondragleave="offDrag(this)" ondrop="onDrop(event,this,'rrhh')">
+          <input type="file" id="file-rrhh" accept=".xlsx,.xls,.csv" onchange="onFile(event,'rrhh')">
+          <div class="icon">👥</div>
+          <div class="title">Arrastra el Excel aquí</div>
+          <div class="sub">.xlsx, .xls, .csv</div>
+        </div>
+
+        <div id="file-rrhh-info"></div>
+
+        <div id="map-rrhh" style="display:none">
+          <div class="map-grid">
+            <div class="map-item"><label>Nombre profesor</label><select id="col-nombre-rrhh"></select></div>
+            <div class="map-item"><label>Apellido (si es separado)</label><select id="col-apellido-rrhh"><option value="">— No aplica —</option></select></div>
+            <div class="map-item"><label>Sigla/Código</label><select id="col-codigo-rrhh"><option value="">— No aplica —</option></select></div>
+            <div class="map-item"><label>Sede</label><select id="col-sede-rrhh"></select></div>
+            <div class="map-item"><label>Asignatura</label><select id="col-asig-rrhh"></select></div>
+          </div>
+        </div>
+
+        <button class="btn-subir" id="btn-rrhh" disabled onclick="subirRRHH()">Subir profesores a Railway</button>
+        <div class="log-box" id="log-rrhh"></div>
+      </div>
+    </div>
+
+    <!-- TAB HISTORIAL -->
+    <div class="tab-pane" id="tab-historial">
+      <div class="upload-card">
+        <h3>Historial de cargas</h3>
+        <p style="margin-bottom:1rem">Todas las cargas guardadas en Railway. Puedes eliminar una carga si fue subida por error.</p>
+        <button class="btn-subir" onclick="cargarHistorial()" style="margin-bottom:1rem">🔄 Actualizar</button>
+        <div id="historial-lista"><p style="font-size:.8rem;color:var(--mut)">Haz clic en Actualizar para cargar el historial.</p></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main-screen -->
+
+<script>
+// ── CONTRASEÑA LOCAL ──────────────────────────────────────────
+const ADMIN_PASSWORD = 'preu2026';
+
+function doLogin(){
+  const pwd = document.getElementById('pwd-input').value.trim();
+  if(pwd === ADMIN_PASSWORD){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('main-screen').style.display='block';
+    try{ sessionStorage.setItem('admin_auth','1'); }catch(e){}
+    loadConfig();
+    setCurrentMonth();
+  } else {
+    document.getElementById('login-err').style.display='block';
+    document.getElementById('pwd-input').value='';
+  }
+}
+function logout(){
+  try{ sessionStorage.removeItem('admin_auth'); }catch(e){}
+  location.reload();
+}
+try{
+  if(sessionStorage.getItem('admin_auth')==='1'){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('main-screen').style.display='block';
+    loadConfig(); setCurrentMonth();
+  }
+}catch(e){}
+
+function setCurrentMonth(){
+  const now = new Date();
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('sel-mes').value = meses[now.getMonth()];
+  document.getElementById('sel-año').value = now.getFullYear();
+}
+
+// ── CONFIGURACIÓN ──────────────────────────────────────────────
+function saveConfig(){
+  const url = document.getElementById('api-url').value.trim();
+  const key = document.getElementById('api-key').value.trim();
+  try{ localStorage.setItem('api_url', url); localStorage.setItem('api_key', key); }catch(e){}
+}
+function loadConfig(){
+  try{
+    const url = localStorage.getItem('api_url') || '';
+    const key = localStorage.getItem('api_key') || '';
+    document.getElementById('api-url').value = url;
+    document.getElementById('api-key').value = key;
+  }catch(e){}
+}
+function getConfig(){
+  return {
+    url: (document.getElementById('api-url').value.trim()).replace(/\/$/, ''),
+    key: document.getElementById('api-key').value.trim()
+  };
+}
+async function testConexion(){
+  const {url, key} = getConfig();
+  if(!url){ alert('Ingresa la URL de Railway primero'); return; }
+  const el = document.getElementById('conn-status');
+  el.className = 'status-badge status-connecting'; el.textContent = '⏳ Conectando...';
+  try{
+    const r = await fetch(url + '/health');
+    if(r.ok){
+      el.className = 'status-badge status-ok'; el.textContent = '✅ Conectado correctamente';
+    } else {
+      el.className = 'status-badge status-err'; el.textContent = '❌ Error: ' + r.status;
+    }
+  }catch(e){
+    el.className = 'status-badge status-err'; el.textContent = '❌ No se pudo conectar';
+  }
+}
+
+// ── TABS ──────────────────────────────────────────────────────
+function showTab(name, el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('tab-'+name).classList.add('on');
+  if(name==='historial') cargarHistorial();
+}
+
+// ── ARCHIVOS ──────────────────────────────────────────────────
+const fileData = {};
+function onDrag(e, el){ e.preventDefault(); el.classList.add('dragover'); }
+function offDrag(el){ el.classList.remove('dragover'); }
+function onDrop(e, el, id){ e.preventDefault(); el.classList.remove('dragover'); processFile(e.dataTransfer.files[0], id); }
+function onFile(e, id){ processFile(e.target.files[0], id); e.target.value=''; }
+
+function processFile(file, id){
+  if(!file) return;
+  fileData[id] = null;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const wb = XLSX.read(e.target.result, {type:'binary', cellDates:true});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+    if(!rows.length){ alert('El archivo está vacío'); return; }
+
+    fileData[id] = { rows, headers: Object.keys(rows[0]) };
+
+    document.getElementById('file-'+id+'-info').innerHTML =
+      '<div class="file-item"><div class="file-icon">XLS</div><span style="flex:1">'+file.name+'</span><span style="color:var(--mut);font-size:.72rem">'+rows.length+' filas · '+fileData[id].headers.length+' columnas</span></div>';
+
+    // Llenar selectores de columnas
+    fillColumnSelects(id, fileData[id].headers);
+    document.getElementById('map-'+id).style.display = 'block';
+    document.getElementById('btn-'+id).disabled = false;
+  };
+  reader.readAsBinaryString(file);
+}
+
+function fillColumnSelects(id, headers){
+  const selectors = {
+    'ens': ['nombre','apellido','sede','asig','pts','num','fecha'],
+    'asist': ['nombre','apellido','sede','asig','fecha','estado'],
+    'alertas': ['nombre','sede','asig','pct','aus','tipo'],
+    'rrhh': ['nombre','apellido','codigo','sede','asig']
+  };
+  const sels = selectors[id] || [];
+  sels.forEach(s => {
+    const el = document.getElementById('col-'+s+'-'+id);
+    if(!el) return;
+    const prevVal = el.value;
+    // Mantener opción vacía si existía
+    const hasEmpty = el.options[0] && el.options[0].value === '';
+    el.innerHTML = (hasEmpty ? '<option value="">— No aplica —</option>' : '');
+    headers.forEach(h => {
+      const opt = document.createElement('option');
+      opt.value = h; opt.textContent = h;
+      el.appendChild(opt);
+    });
+    // Auto-detectar
+    const autoDetect = {
+      'nombre': /nombre|name/i, 'apellido': /apellido|last/i, 'sede': /sede|campus|local/i,
+      'asig': /asig|materia|clase|subject|curso/i, 'pts': /puntaje|punta|pts|nota|score/i,
+      'num': /ensayo|número|num|n°/i, 'fecha': /fecha|date/i, 'estado': /estado|present|asist/i,
+      'pct': /pct|porcen|%/i, 'aus': /aus|falta/i, 'tipo': /tipo|type/i,
+      'codigo': /sigla|cod|codigo|code/i
+    };
+    const pattern = autoDetect[s];
+    if(pattern){
+      const match = headers.find(h => pattern.test(h));
+      if(match) el.value = match;
+    }
+  });
+}
+
+function getVal(id, sel){ const el = document.getElementById('col-'+sel+'-'+id); return el ? el.value : ''; }
+
+// ── SUBIR ENSAYOS ─────────────────────────────────────────────
+async function subirEnsayos(){
+  const {url, key} = getConfig();
+  if(!url){ alert('Configura la URL de Railway primero'); return; }
+  if(!fileData['ens']){ alert('No hay archivo cargado'); return; }
+
+  const log = document.getElementById('log-ens');
+  log.style.display = 'block'; log.innerHTML = '';
+  const addLog = (msg, cls='') => log.innerHTML += '<div class="'+cls+'">'+msg+'</div>';
+
+  const rows = fileData['ens'].rows;
+  const cNombre = getVal('ens','nombre'), cApellido = getVal('ens','apellido');
+  const cSede = getVal('ens','sede'), cAsig = getVal('ens','asig');
+  const cPts = getVal('ens','pts'), cNum = getVal('ens','num'), cFecha = getVal('ens','fecha');
+
+  addLog('📦 Procesando ' + rows.length + ' filas...');
+
+  const ensayos = [];
+  rows.forEach(row => {
+    const nombre = [row[cNombre], cApellido ? row[cApellido] : ''].filter(Boolean).join(' ').trim();
+    const puntaje = parseInt(row[cPts]);
+    if(!nombre || isNaN(puntaje)) return;
+    ensayos.push({
+      nombre, sede: row[cSede]||'', asignatura: row[cAsig]||'',
+      puntaje, ensayo: parseInt(row[cNum])||1,
+      fecha: cFecha && row[cFecha] ? String(row[cFecha]).substring(0,10) : null
+    });
+  });
+
+  addLog(`✓ ${ensayos.length} registros válidos de ${rows.length} filas`, 'log-ok');
+
+  try{
+    document.getElementById('btn-ens').disabled = true;
+    const r = await fetch(url+'/api/admin/subir-todo', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-admin-key':key},
+      body: JSON.stringify({
+        mes: document.getElementById('sel-mes').value,
+        año: document.getElementById('sel-año').value,
+        descripcion: document.getElementById('sel-desc').value || undefined,
+        ensayos
+      })
+    });
+    const data = await r.json();
+    if(r.ok){
+      addLog('✅ ¡Subido correctamente! '+data.insertados.ensayos+' ensayos guardados en Railway', 'log-ok');
+    } else {
+      addLog('❌ Error: '+data.error, 'log-err');
+    }
+  }catch(e){
+    addLog('❌ Error de conexión: '+e.message, 'log-err');
+  }
+  document.getElementById('btn-ens').disabled = false;
+}
+
+// ── SUBIR ASISTENCIA ──────────────────────────────────────────
+async function subirAsistencia(){
+  const {url, key} = getConfig();
+  if(!url){ alert('Configura la URL de Railway primero'); return; }
+  if(!fileData['asist']){ alert('No hay archivo cargado'); return; }
+
+  const log = document.getElementById('log-asist');
+  log.style.display = 'block'; log.innerHTML = '';
+  const addLog = (msg, cls='') => log.innerHTML += '<div class="'+cls+'">'+msg+'</div>';
+
+  const rows = fileData['asist'].rows;
+  const cNombre = getVal('asist','nombre'), cApellido = getVal('asist','apellido');
+  const cSede = getVal('asist','sede'), cAsig = getVal('asist','asig');
+  const cFecha = getVal('asist','fecha'), cEstado = getVal('asist','estado');
+
+  addLog('📦 Procesando ' + rows.length + ' filas...');
+
+  const asistencia = [];
+  rows.forEach(row => {
+    const nombre = [row[cNombre], cApellido ? row[cApellido] : ''].filter(Boolean).join(' ').trim();
+    if(!nombre) return;
+    const estadoRaw = cEstado ? String(row[cEstado]).toLowerCase() : 'p';
+    const presente = ['p','presente','1','true','si','sí','yes','asistió'].includes(estadoRaw);
+    asistencia.push({
+      nombre, sede: row[cSede]||'', asignatura: row[cAsig]||'',
+      presente, fecha: cFecha && row[cFecha] ? String(row[cFecha]).substring(0,10) : null
+    });
+  });
+
+  addLog(`✓ ${asistencia.length} registros válidos`, 'log-ok');
+
+  try{
+    document.getElementById('btn-asist').disabled = true;
+    const r = await fetch(url+'/api/admin/subir-todo', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-admin-key':key},
+      body: JSON.stringify({
+        mes: document.getElementById('sel-mes').value,
+        año: document.getElementById('sel-año').value,
+        descripcion: document.getElementById('sel-desc').value,
+        asistencia
+      })
+    });
+    const data = await r.json();
+    if(r.ok) addLog('✅ Asistencia subida: '+data.insertados.asistencia+' registros', 'log-ok');
+    else addLog('❌ Error: '+data.error, 'log-err');
+  }catch(e){ addLog('❌ '+e.message, 'log-err'); }
+  document.getElementById('btn-asist').disabled = false;
+}
+
+// ── SUBIR ALERTAS ─────────────────────────────────────────────
+async function subirAlertas(){
+  const {url, key} = getConfig();
+  if(!url){ alert('Configura la URL de Railway primero'); return; }
+  if(!fileData['alertas']){ alert('No hay archivo cargado'); return; }
+
+  const log = document.getElementById('log-alertas');
+  log.style.display = 'block'; log.innerHTML = '';
+  const addLog = (msg, cls='') => log.innerHTML += '<div class="'+cls+'">'+msg+'</div>';
+
+  const rows = fileData['alertas'].rows;
+  const alertas = rows.map(row => ({
+    nombre: row[getVal('alertas','nombre')] || '',
+    sede: row[getVal('alertas','sede')] || '',
+    asig: row[getVal('alertas','asig')] || '',
+    pct: parseFloat(row[getVal('alertas','pct')]) || null,
+    aus: parseInt(row[getVal('alertas','aus')]) || 0,
+    tipo: row[getVal('alertas','tipo')] || 'ult2'
+  })).filter(a => a.nombre);
+
+  addLog(`✓ ${alertas.length} alertas procesadas`, 'log-ok');
+
+  try{
+    document.getElementById('btn-alertas').disabled = true;
+    const r = await fetch(url+'/api/admin/subir-todo', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-admin-key':key},
+      body: JSON.stringify({
+        mes: document.getElementById('sel-mes').value,
+        año: document.getElementById('sel-año').value,
+        alertas
+      })
+    });
+    const data = await r.json();
+    if(r.ok) addLog('✅ Alertas subidas: '+data.insertados.alertas+' registros', 'log-ok');
+    else addLog('❌ Error: '+data.error, 'log-err');
+  }catch(e){ addLog('❌ '+e.message, 'log-err'); }
+  document.getElementById('btn-alertas').disabled = false;
+}
+
+// ── SUBIR RRHH ────────────────────────────────────────────────
+async function subirRRHH(){
+  const {url, key} = getConfig();
+  if(!url){ alert('Configura la URL de Railway primero'); return; }
+  if(!fileData['rrhh']){ alert('No hay archivo cargado'); return; }
+
+  const log = document.getElementById('log-rrhh');
+  log.style.display = 'block'; log.innerHTML = '';
+  const addLog = (msg, cls='') => log.innerHTML += '<div class="'+cls+'">'+msg+'</div>';
+
+  const rows = fileData['rrhh'].rows;
+  const cNombre = getVal('rrhh','nombre'), cApellido = getVal('rrhh','apellido');
+  const cCodigo = getVal('rrhh','codigo'), cSede = getVal('rrhh','sede'), cAsig = getVal('rrhh','asig');
+
+  // Agrupar por nombre para consolidar sedes y asignaturas
+  const profMap = {};
+  rows.forEach(row => {
+    const nombre = [row[cNombre], cApellido ? row[cApellido] : ''].filter(Boolean).join(' ').trim();
+    if(!nombre) return;
+    if(!profMap[nombre]) profMap[nombre] = { nombre, codigo: row[cCodigo]||'', sedes: new Set(), asignaturas: new Set() };
+    if(row[cSede]) profMap[nombre].sedes.add(String(row[cSede]).trim());
+    if(row[cAsig]) profMap[nombre].asignaturas.add(String(row[cAsig]).trim());
+  });
+
+  const rrhh = Object.values(profMap).map(p => ({
+    ...p, sedes: [...p.sedes], asignaturas: [...p.asignaturas]
+  }));
+
+  addLog(`✓ ${rrhh.length} profesores procesados`, 'log-ok');
+
+  try{
+    document.getElementById('btn-rrhh').disabled = true;
+    const r = await fetch(url+'/api/admin/subir-todo', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-admin-key':key},
+      body: JSON.stringify({
+        mes: document.getElementById('sel-mes').value,
+        año: document.getElementById('sel-año').value,
+        rrhh
+      })
+    });
+    const data = await r.json();
+    if(r.ok) addLog('✅ RRHH subido: '+data.insertados.rrhh+' profesores', 'log-ok');
+    else addLog('❌ Error: '+data.error, 'log-err');
+  }catch(e){ addLog('❌ '+e.message, 'log-err'); }
+  document.getElementById('btn-rrhh').disabled = false;
+}
+
+// ── HISTORIAL ──────────────────────────────────────────────────
+async function cargarHistorial(){
+  const {url, key} = getConfig();
+  const el = document.getElementById('historial-lista');
+  if(!url){ el.innerHTML = '<p style="color:var(--red);font-size:.8rem">Configura la URL de Railway primero</p>'; return; }
+  el.innerHTML = '<p style="font-size:.8rem;color:var(--mut)">⏳ Cargando...</p>';
+  try{
+    const r = await fetch(url+'/api/cargas');
+    const data = await r.json();
+    if(!data.length){ el.innerHTML = '<p style="font-size:.8rem;color:var(--mut)">No hay cargas aún.</p>'; return; }
+    el.innerHTML = data.map(c => `
+      <div class="history-row">
+        <div>
+          <span style="font-weight:600">${c.descripcion || c.mes + ' ' + c.año}</span>
+          <span class="badge" style="margin-left:8px">${c.mes} ${c.año}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:.72rem;color:var(--mut)">${new Date(c.creado_en).toLocaleDateString('es-CL')}</span>
+          <button class="btn-del" onclick="eliminarCarga(${c.id})">🗑 Eliminar</button>
+        </div>
+      </div>
+    `).join('');
+  }catch(e){ el.innerHTML = '<p style="color:var(--red);font-size:.8rem">Error al cargar historial: '+e.message+'</p>'; }
+}
+
+async function eliminarCarga(id){
+  if(!confirm('¿Eliminar esta carga y todos sus datos? Esta acción no se puede deshacer.')) return;
+  const {url, key} = getConfig();
+  try{
+    const r = await fetch(url+'/api/admin/cargas/'+id, {method:'DELETE', headers:{'x-admin-key':key}});
+    if(r.ok){ alert('Carga eliminada'); cargarHistorial(); }
+    else alert('Error al eliminar');
+  }catch(e){ alert('Error: '+e.message); }
+}
+</script>
+
+</body>
+</html>
